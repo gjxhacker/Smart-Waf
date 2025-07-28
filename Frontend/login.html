@@ -1,0 +1,65 @@
+<?php
+// db.php - Database connection
+$host = 'localhost';
+$user = 'root';
+$password = '';
+$dbname = 'hotel_system';
+
+$conn = new mysqli($host, $user, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+
+<!-- login.html - Login form -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="post" action="login.php">
+        <label>Username:</label>
+        <input type="text" name="username" required><br>
+        <label>Password:</label>
+        <input type="password" name="password" required><br>
+        <input type="submit" value="Login">
+    </form>
+</body>
+</html>
+
+<?php
+// login.php - Login processing
+session_start();
+include 'db.php';
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
+        if (password_verify($password, $user['password'])) {
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+
+            if ($user['role'] === 'receptionist') {
+                header("Location: register_guest.php");
+            } elseif ($user['role'] === 'manager') {
+                header("Location: view_guests.php");
+            }
+        } else {
+            echo "Invalid credentials.";
+        }
+    } else {
+        echo "User not found.";
+    }
+}
+?>
